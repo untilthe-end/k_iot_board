@@ -9,9 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-// DB 엔티티(UserEntity) -> UserPrincipal로 변환 역할
-// UserPrincipal 만드는 factory 느낌
-
 @Component
 @RequiredArgsConstructor
 public class UserPrincipalMapper {
@@ -21,7 +18,7 @@ public class UserPrincipalMapper {
     /** === JWT Filter에서 username만 가지고 principal 생성용 === */
     public UserPrincipal toPrincipal(@NonNull String username) {
 
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findWithRolesByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
         return map(user);
@@ -33,7 +30,7 @@ public class UserPrincipalMapper {
         List<SimpleGrantedAuthority> authorities =
                 (user.getUserRoles() == null || user.getUserRoles().isEmpty())
                         ? List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                        : user.getUserRoles().stream()
+                        : user.getUserRoles().stream() // Lazy 로딩 발생
                         .map(role -> {
                             String r = role.getRole().getName().name();
                             String name = r.startsWith("ROLE_") ? r : "ROLE_" + r;

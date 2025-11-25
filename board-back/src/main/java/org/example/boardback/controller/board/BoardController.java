@@ -32,7 +32,7 @@ public class BoardController {
     // 단일 조회
     @GetMapping(BoardApi.BY_ID)
     public ResponseEntity<ResponseDto<BoardResponseDto>> getBoard(
-            @PathVariable Long boardId
+            @PathVariable String boardId
     ) {
         ResponseDto<BoardResponseDto> data = boardService.getBoard(boardId);
         return ResponseEntity.ok(data);

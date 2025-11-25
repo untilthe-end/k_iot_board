@@ -1,5 +1,7 @@
 package org.example.boardback.controller.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.boardback.common.apis.auth.AuthApi;
@@ -23,10 +25,11 @@ public class AuthController {
      */
     @PostMapping(AuthApi.LOGIN)
     public ResponseEntity<ResponseDto<LoginResponseDto>> login(
-            @Valid @RequestBody LoginRequestDto request
+            @Valid @RequestBody LoginRequestDto request,
+            HttpServletResponse response
     ) {
-        ResponseDto<LoginResponseDto> response = authService.login(request);
-        return ResponseEntity.status(response.getStatus()).body(response);
+        ResponseDto<LoginResponseDto> result = authService.login(request, response);
+        return ResponseEntity.status(response.getStatus()).body(result);
     }
 
     /**
@@ -34,10 +37,11 @@ public class AuthController {
      */
     @PostMapping(AuthApi.REFRESH)
     public ResponseEntity<ResponseDto<LoginResponseDto>> refresh(
-            @Valid @RequestBody RefreshRequestDto request
+            HttpServletRequest request,
+            HttpServletResponse response
     ) {
-        ResponseDto<LoginResponseDto> response = authService.refresh(request);
-        return ResponseEntity.status(response.getStatus()).body(response);
+        ResponseDto<LoginResponseDto> result = authService.refreshAccessToken(request, response);
+        return ResponseEntity.status(response.getStatus()).body(result);
     }
 
     /**
@@ -45,10 +49,11 @@ public class AuthController {
      */
     @PostMapping(AuthApi.LOGOUT)
     public ResponseEntity<ResponseDto<Void>> logout(
-            @Valid @RequestBody LogoutRequestDto request
+            HttpServletRequest request,
+            HttpServletResponse response
     ) {
-        ResponseDto<Void> response = authService.logout(request);
-        return ResponseEntity.status(response.getStatus()).body(response);
+        ResponseDto<Void> result = authService.logout(request, response);
+        return ResponseEntity.status(response.getStatus()).body(result);
     }
 
     /**

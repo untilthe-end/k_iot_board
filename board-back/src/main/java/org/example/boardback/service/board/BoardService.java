@@ -12,7 +12,7 @@ import org.example.boardback.dto.board.response.PageBoardResponseDto;
 import org.example.boardback.dto.board.response.SearchBoardListResponseDto;
 
 public interface BoardService {
-    ResponseDto<BoardResponseDto> getBoard(Long boardId);
+    ResponseDto<BoardResponseDto> getBoard(String boardId);
     ResponseDto<BoardResponseDto> createBoard(@Valid BoardCreateRequestDto request);
     ResponseDto<BoardResponseDto> updateBoard(Long boardId, @Valid BoardUpdateRequestDto request);
     ResponseDto<Void> deleteBoard(Long boardId);

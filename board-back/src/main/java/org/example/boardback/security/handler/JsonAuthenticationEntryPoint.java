@@ -3,6 +3,7 @@ package org.example.boardback.security.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.boardback.common.enums.ErrorCode;
 import org.example.boardback.dto.ResponseDto;
@@ -12,11 +13,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-
-// 인증 안됨(401 Unauthorized)일 때 JSON 형태로 에러 응답
-// JWT가 없거나 잘못된 경우 등
-
-//---------------------------
 
 // AuthenticationEntryPoint 인터페이스
 // : 인증되지 않은 사용자가 인증이 필요한 엔드포인트로 접근할 때 발생
@@ -28,9 +24,10 @@ import java.io.IOException;
 // 401 전용 Entry Point
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Override
     public void commence(

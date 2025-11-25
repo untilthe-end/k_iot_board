@@ -24,8 +24,11 @@ export interface UserProfileImageResponse {
 
 // 로그인된 사용자 정보
 export interface MeResponse {
-  userId: number;
+  id: number;
   username: string;
+  email: string;
   nickname: string;
   profileImageUrl?: string;
+  roles: string[];        // RoleType: USER / MANAGER / ADMIN
+  provider: "LOCAL" | "GOOGLE" | "KAKAO" | "NAVER";
 }

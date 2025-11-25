@@ -1,7 +1,7 @@
 // axiosInstance.ts
 
 import { useAuthStore } from "@/stores/auth.store";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -17,7 +17,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 export const publicApi = axios.create({
   baseURL: API_BASE,
-  withCredentials: true,
+  withCredentials: true,  // refreshToken 쿠키 전달
 });
 
 export const privateApi = axios.create({
@@ -26,46 +26,81 @@ export const privateApi = axios.create({
 });
 
 // ============ Request ============
+// : REQUEST Interceptor: Access Token 자동 삽입
 privateApi.interceptors.request.use((config) => {
-  const access = useAuthStore.getState().accessToken;
-  if (access && config.headers) {
-    config.headers["Authorization"] = `Bearer ${access}`;
+  const {accessToken} = useAuthStore.getState();
+  if (accessToken && config.headers) {
+    config.headers["Authorization"] = `Bearer ${accessToken}`;
   }
   return config;
 });
 
-// ============ Response(자동 갱신) ============
+//? Refresh 401(만료) 처리
+let isRefreshing = false;
+let failQueue: Array<{
+  resolve: (token: string | null ) => void;
+  reject: (err: unknown) => void;
+}> = [];
+
+// refresh 이후 큐에 쌓인 요청들을 모두 처리하는 함수
+const processQueue = (error: unknown, token: string | null) => {
+  failQueue.forEach(process => {
+    if (error) process.reject(error);
+    else process.resolve(token);
+  });
+  failQueue = [];
+}
+
+// ============ Response(자동 갱신/재발급) ============
 privateApi.interceptors.response.use(
   (res) => res,
-  async (error) => {
-    const original = error.config;
+  async (error: AxiosError) => {
+    const original = error.config as any;
 
+    // 401(만료) + 재시도 안 된 요청만 처리
     if (error.response?.status === 401 && !original._retry) {
-      original._retry = true;
+      const { clearAuth, setAccessToken } = useAuthStore.getState();
 
-      const refresh = useAuthStore.getState().refreshToken;
-      if (!refresh) return Promise.reject(error);
+      // refresh 중이면 Que에 넣기
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failQueue.push({
+            resolve: (newToken) => {
+              if (newToken) original.headers.Authorization = `Bearer ${newToken}`;
+              resolve(privateApi(original));
+            },
+            reject,
+          });
+        });
+      }
+
+      //! refresh 요청을 처음 시작하는 경우
+      original._retry = true;
+      isRefreshing = true;
 
       try {
-        const res = await publicApi.post("/auth/refresh", {
-          refreshToken: refresh,
-        });
+        const {data} = await publicApi.post("/api/v1/auth/refresh");
 
-        const data = res.data.data;
+        const newAccessToken = (data as any).data.accessToken;
+
         if (!data) return Promise.reject(error);
 
         // Zustand에 갱신 저장
-        useAuthStore.getState().setTokens(data.accessToken, data.refreshToken);
+        setAccessToken(newAccessToken);
 
         // 원래 요청 재시도
-        original.headers["Authorization"] = `Bearer ${data.accessToken}`;
+        original.headers["Authorization"] = `Bearer ${data.newAccessToken}`;
         return privateApi(original);
-      } catch (e) {
-        useAuthStore.getState().logout();
-        return Promise.reject(error);
+
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        clearAuth();
+        return Promise.reject(refreshError);
+        
+      } finally {
+        isRefreshing = false;
       }
     }
-
     return Promise.reject(error);
   }
 );
